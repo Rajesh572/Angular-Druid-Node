@@ -23,24 +23,29 @@ app.post('/v1/api/getBarData', (req, res) => {
     program_name = req.body.program_name;
     topics = req.body.topics;
     role = req.body.role;
-    request = event_type === undefined ?
-        index2.generateReqForRoleBar(program_name, dimension, role, topics)
-        : index.generateReqforBar(program_name, dimension, event_type, topics)
-    axios.post(HOST + ":8082/druid/v2", request)
-        .then((response) => {
-            var dataArr = []
-            response.data.forEach(element => {
-                element['event']['timestamp'] = element['timestamp'];
-                element['event']['count'] = parseInt(element['event']['count'])
-                element['event']['year'] = new Date(element['timestamp']).getFullYear()
-                dataArr.push(element['event'])
-            });
-            res.send({ "data": dataArr })
-        }).
-        catch((err) => {
-            console.log(err)
-            res.send("error")
-        })
+    if (dimension != undefined && program_name != undefined && (role != undefined || event_type != undefined)) {
+        request = event_type === undefined ?
+            index2.generateReqForRoleBar(program_name, dimension, role, topics)
+            : index.generateReqforBar(program_name, dimension, event_type, topics)
+        axios.post(HOST + ":8082/druid/v2", request)
+            .then((response) => {
+                var dataArr = []
+                response.data.forEach(element => {
+                    element['event']['timestamp'] = element['timestamp'];
+                    element['event']['count'] = parseInt(element['event']['count'])
+                    element['event']['year'] = new Date(element['timestamp']).getFullYear()
+                    dataArr.push(element['event'])
+                });
+                res.send({ "data": dataArr })
+            }).
+            catch((err) => {
+                console.log(err)
+                res.send("error")
+            })
+    }
+    else {
+        res.send("eror")
+    }
 })
 
 //api for getting stacked data
@@ -50,24 +55,30 @@ app.post('/v1/api/getStackedData', (req, res) => {
     program_name = req.body.program_name;
     topics = req.body.topics;
     role = req.body.role;
-    request = event_type === undefined ?
-        index2.generateReqforRoleStacked(program_name, dimension, role, topics)
-        : index.generateReqforStacked(program_name, dimension, event_type, topics)
-    axios.post(HOST + ":8082/druid/v2", request)
-        .then((response) => {
-            var dataArr = []
-            response.data.forEach(element => {
-                element['event']['timestamp'] = element['timestamp']
-                element['event']['count'] = parseInt(element['event']['count'])
-                element['event']['year'] = new Date(element['timestamp']).getFullYear()
-                dataArr.push(element['event'])
-            });
-            res.send({ "data": dataArr })
-        }).
-        catch((err) => {
-            console.log(err)
-            res.send("error")
-        })
+    if (dimension != undefined && program_name != undefined && (role != undefined || event_type != undefined)) {
+
+        request = event_type === undefined ?
+            index2.generateReqforRoleStacked(program_name, dimension, role, topics)
+            : index.generateReqforStacked(program_name, dimension, event_type, topics)
+        axios.post(HOST + ":8082/druid/v2", request)
+            .then((response) => {
+                var dataArr = []
+                response.data.forEach(element => {
+                    element['event']['timestamp'] = element['timestamp']
+                    element['event']['count'] = parseInt(element['event']['count'])
+                    element['event']['year'] = new Date(element['timestamp']).getFullYear()
+                    dataArr.push(element['event'])
+                });
+                res.send({ "data": dataArr })
+            }).
+            catch((err) => {
+                console.log(err)
+                res.send("error")
+            })
+    }
+    else {
+        res.send("error");
+    }
 })
 
 //api for multiline
@@ -77,23 +88,28 @@ app.post('/v1/api/getMultiLineData', (req, res) => {
     program_name = req.body.program_name;
     role = req.body.role;
     topics = req.body.topics;
-    request = event_type === undefined ?
-        index2.generateReqForRoleMultiLine(program_name, dimension, role, topics) :
-        index.generateReqForMultiLine(program_name, dimension, event_type, topics)
-    axios.post(HOST + ":8082/druid/v2", request)
-        .then((response) => {
-            var dataArr = []
-            response.data.forEach(element => {
-                element['event']['date'] = element['timestamp']
-                element['event']['count'] = parseInt(element['event']['count'])
-                dataArr.push(element['event'])
-            });
-            res.send({ "data": dataArr })
-        }).
-        catch((err) => {
-            console.log(err)
-            res.send("error")
-        })
+    if (dimension != undefined && program_name != undefined && (role != undefined || event_type != undefined)) {
+        request = event_type === undefined ?
+            index2.generateReqForRoleMultiLine(program_name, dimension, role, topics) :
+            index.generateReqForMultiLine(program_name, dimension, event_type, topics)
+        axios.post(HOST + ":8082/druid/v2", request)
+            .then((response) => {
+                var dataArr = []
+                response.data.forEach(element => {
+                    element['event']['date'] = element['timestamp']
+                    element['event']['count'] = parseInt(element['event']['count'])
+                    dataArr.push(element['event'])
+                });
+                res.send({ "data": dataArr })
+            }).
+            catch((err) => {
+                console.log(err)
+                res.send("error")
+            })
+    }
+    else {
+        res.send("error")
+    }
 })
 
 //for getting topics list
@@ -101,22 +117,27 @@ app.post('/v1/api/getAlltopics', (req, res) => {
     event_type = req.body.event_type;
     program_name = req.body.program_name;
     role = req.body.role;
-    request = role != undefined ?
-        index2.generateReqForRoleTopic(program_name, role)
-        : index.generateReqForTopic(program_name, event_type)
-    axios.post(HOST + ":8082/druid/v2", request)
-        .then((response) => {
-            var dataArr = []
-            response.data.forEach(element => {
-                element['event']['date'] = element['timestamp']
-                dataArr.push(element['event'])
-            });
-            res.send({ "data": dataArr })
-        }).
-        catch((err) => {
-            console.log(err)
-            res.send("error")
-        })
+    if (program_name != undefined && (role != undefined || event_type != undefined)) {
+        request = role != undefined ?
+            index2.generateReqForRoleTopic(program_name, role)
+            : index.generateReqForTopic(program_name, event_type)
+        axios.post(HOST + ":8082/druid/v2", request)
+            .then((response) => {
+                var dataArr = []
+                response.data.forEach(element => {
+                    element['event']['date'] = element['timestamp']
+                    dataArr.push(element['event'])
+                });
+                res.send({ "data": dataArr })
+            }).
+            catch((err) => {
+                console.log(err)
+                res.send("error")
+            })
+    }
+    else {
+        res.send("error");
+    }
 })
 
 app.get('/v1/api/getCountForAttestation', (req, res) => {
