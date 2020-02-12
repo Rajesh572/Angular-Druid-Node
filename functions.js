@@ -1,6 +1,8 @@
-const apiUrl = "https://reverse.geocoder.ls.hereapi.com/6.2/reversegeocode.json?apiKey=4a6oTZrT3yS2UaAzB9fio64ta1O2hasU2tkJl_iUr-s&mode=retrieveLocation&prox="
+const API_KEY=process.env['API_KEY']
+const apiUrl = "https://reverse.geocoder.ls.hereapi.com/6.2/reversegeocode.json?apiKey="+API_KEY+"&mode=retrieveLocation&prox="
 const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 const superagent = require("superagent")
+
 
 function addLocationData(data) {
     var promisedarray = data.map(async function (element) {
