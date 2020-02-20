@@ -90,13 +90,13 @@ function generateReqforRoleStacked(program_name, dimension, role,topics) {
 }
 
 function generateReqForRoleMultiLine(program_name, dimension, role,topics) {
+    granualirity = dimension === "month" ? "Day" : "All";
+    dimension = dimension === "month" ? ["topic_name"] : ["topic_name", "Location"];
     var Req = {
         queryType: "groupBy",
         dataSource: "socionDataWithLocation",
-        granularity: "Day",
-        dimensions: [
-            "topic_name"
-        ],
+        granularity: granualirity,
+        dimensions: dimension,
         aggregations: [
             {
                 type: "cardinality",

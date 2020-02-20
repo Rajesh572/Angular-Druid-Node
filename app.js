@@ -141,49 +141,194 @@ app.post('/v1/api/getAlltopics', (req, res) => {
 })
 
 app.get('/v1/api/getCountForAttestation', (req, res) => {
-    axios.post(HOST + ":8082/druid/v2/sql",
+    axios.post(HOST + ":8082/druid/v2",
         {
-            query: `SELECT count(*) as "value" from socionDataWithLocation where "event_type"='Generate Attestation'`
+            "queryType": "groupBy",
+            "dataSource": "socionDataWithLocation",
+            "granularity": "All",
+            "dimensions": [],
+            "aggregations": [
+                {
+                    "type": "count",
+                    "name": "value",
+                    "fieldName": "count"
+                }
+            ],
+            "filter": {
+                "type": "and",
+                "fields": [
+                    {
+                        "type": "selector",
+                        "dimension": "program_name",
+                        "value": "Hepatitis - c Awareness"
+                    },
+                    {
+                        "type": "selector",
+                        "dimension": "event_type",
+                        "value": "Generate Attestation"
+                    }
+                ]
+            },
+            "intervals": [
+                "2018-10-07T00:00:00.000Z/2020-10-30T00:00:00.000Z"
+            ]
         }).then((response) => {
-            res.send(response.data)
+            res.send([response.data[0]['event']])
         })
 })
 
 
 app.get('/v1/api/getCountForSessionCompleted', (req, res) => {
-    axios.post(HOST + ":8082/druid/v2/sql",
+    axios.post(HOST + ":8082/druid/v2",
         {
-            query: `SELECT count(*) as "value" from socionDataWithLocation where "event_type"='Session Completed'`
+            "queryType": "groupBy",
+            "dataSource": "socionDataWithLocation",
+            "granularity": "All",
+            "dimensions": [],
+            "aggregations": [
+                {
+                    "type": "count",
+                    "name": "value",
+                    "fieldName": "count"
+                }
+            ],
+            "filter": {
+                "type": "and",
+                "fields": [
+                    {
+                        "type": "selector",
+                        "dimension": "program_name",
+                        "value": "Hepatitis - c Awareness"
+                    },
+                    {
+                        "type": "selector",
+                        "dimension": "event_type",
+                        "value": "Session Completed"
+                    }
+                ]
+            },
+            "intervals": [
+                "2018-10-07T00:00:00.000Z/2020-10-30T00:00:00.000Z"
+            ]
         }).then((response) => {
-            res.send(response.data)
+            res.send([response.data[0]['event']])
         })
 })
 
 app.get('/v1/api/getCountForDownload', (req, res) => {
-    axios.post(HOST + ":8082/druid/v2/sql",
+    axios.post(HOST + ":8082/druid/v2",
         {
-            query: `SELECT count(*) as "value" from socionDataWithLocation where "event_type"='Download Content'`
+            "queryType": "groupBy",
+            "dataSource": "socionDataWithLocation",
+            "granularity": "All",
+            "dimensions": [],
+            "aggregations": [
+                {
+                    "type": "count",
+                    "name": "value",
+                    "fieldName": "count"
+                }
+            ],
+            "filter": {
+                "type": "and",
+                "fields": [
+                    {
+                        "type": "selector",
+                        "dimension": "program_name",
+                        "value": "Hepatitis - c Awareness"
+                    },
+                    {
+                        "type": "selector",
+                        "dimension": "event_type",
+                        "value": "Download Content"
+                    }
+                ]
+            },
+            "intervals": [
+                "2018-10-07T00:00:00.000Z/2020-10-30T00:00:00.000Z"
+            ]
         }).then((response) => {
-            res.send(response.data)
+            res.send([response.data[0]['event']])
         })
 })
 
 
 app.get('/v1/api/getCountForUniqueTrainee', (req, res) => {
-    axios.post(HOST + ":8082/druid/v2/sql",
+    axios.post(HOST + ":8082/druid/v2/",
         {
-            query: `SELECT count(DISTINCT(user_id)) as "value" from socionDataWithLocation where "role"='TRAINEE'`
+
+            "queryType": "groupBy",
+            "dataSource": "socionDataWithLocation",
+            "granularity": "All",
+            "aggregations": [
+                {
+                    "type": "cardinality",
+                    "name": "value",
+                    "fieldNames": [
+                        "user_id"
+                    ]
+                }
+            ],
+            "filter": {
+                "type": "and",
+                "fields": [
+                    {
+                        "type": "selector",
+                        "dimension": "role",
+                        "value": "TRAINEE"
+                    },
+                    {
+                        "type": "selector",
+                        "dimension": "program_name",
+                        "value": "Hepatitis - c Awareness"
+                    }
+                ]
+            },
+            "intervals": [
+                "2018-10-07T00:00:00.000Z/2020-10-30T00:00:00.000Z"
+            ]
+
         }).then((response) => {
-            res.send(response.data)
+            res.send([{ value: Math.round(response.data[0]['event']['value']) }])
         })
 })
 
 app.get('/v1/api/getCountForUniqueTrainer', (req, res) => {
-    axios.post(HOST + ":8082/druid/v2/sql",
+    axios.post(HOST + ":8082/druid/v2/",
         {
-            query: `SELECT count(DISTINCT(user_id)) as "value" from socionDataWithLocation where "role"='TRAINER'`
+            "queryType": "groupBy",
+            "dataSource": "socionDataWithLocation",
+            "granularity": "All",
+            "aggregations": [
+                {
+                    "type": "cardinality",
+                    "name": "value",
+                    "fieldNames": [
+                        "user_id"
+                    ]
+                }
+            ],
+            "filter": {
+                "type": "and",
+                "fields": [
+                    {
+                        "type": "selector",
+                        "dimension": "role",
+                        "value": "TRAINER"
+                    },
+                    {
+                        "type": "selector",
+                        "dimension": "program_name",
+                        "value": "Hepatitis - c Awareness"
+                    }
+                ]
+            },
+            "intervals": [
+                "2018-10-07T00:00:00.000Z/2020-10-30T00:00:00.000Z"
+            ]
+
         }).then((response) => {
-            res.send(response.data)
+            res.send([{ value: Math.round(response.data[0]['event']['value']) }])
         })
 })
 

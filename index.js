@@ -85,13 +85,14 @@ function generateReqforStacked(program_name, dimension, event_type, topics) {
 }
 
 function generateReqForMultiLine(program_name, dimension, event_type, topics) {
+    granualirity = dimension === "month" ? "Day" : "All";
+    dimension = dimension === "month" ? ["topic_name"] : ["topic_name", "Location"];
+
     var Req = {
         queryType: "groupBy",
         dataSource: "socionDataWithLocation",
-        granularity: "Day",
-        dimensions: [
-            "topic_name"
-        ],
+        granularity: granualirity,
+        dimensions: dimension,
         aggregations: [
             {
                 "type": "count",
