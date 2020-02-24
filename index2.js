@@ -90,7 +90,7 @@ function generateReqforRoleStacked(program_name, dimension, role,topics) {
 }
 
 function generateReqForRoleMultiLine(program_name, dimension, role,topics) {
-    granualirity = dimension === "month" ? "Day" : "All";
+    granualirity = dimension === "month" ? "Month" : "All";
     dimension = dimension === "month" ? ["topic_name"] : ["topic_name", "Location"];
     var Req = {
         queryType: "groupBy",

@@ -85,7 +85,7 @@ function generateReqforStacked(program_name, dimension, event_type, topics) {
 }
 
 function generateReqForMultiLine(program_name, dimension, event_type, topics) {
-    granualirity = dimension === "month" ? "Day" : "All";
+    granualirity = dimension === "month" ? "Month" : "All";
     dimension = dimension === "month" ? ["topic_name"] : ["topic_name", "Location"];
 
     var Req = {
