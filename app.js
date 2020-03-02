@@ -362,3 +362,105 @@ app.post('/v1/api/upload', (req, res) => {
 app.listen(3000, () => {
     console.log("Server listening on 3000")
 })
+
+
+app.post('/v1/event/count/read', (req, res) => {
+
+
+    checkUnique = req.body.unique;
+    reqFilters = req.body.params;
+    requestParams = Object.keys(req.body.params);
+
+    requestBody = {};
+    requestBody['queryType'] = 'groupBy';
+    requestBody['dataSource'] = 'socionDataWithLocation';
+    requestBody['granularity'] = 'All';
+
+    dimensionObjects = [];
+    requestParams.forEach((item) => {
+        dimensionObjectEach = {};
+        dimensionObjectEach['type'] = 'selector';
+        dimensionObjectEach['dimension'] = item;
+        dimensionObjectEach['outputName'] = item;
+        dimensionObjects.push(dimensionObjectEach);
+    });
+
+    requestBody['dimensions'] = dimensionObjects;
+
+    aggregationObjects = [];
+    aggregationObjectEach = {};
+    if(checkUnique) {
+        aggregationObjectEach['type'] = 'thetaSketch';
+        aggregationObjectEach['name'] = 'count';
+        aggregationObjectEach['fieldName'] = req.body.unique_param;
+    } else {
+        aggregationObjectEach['type'] = 'count';
+        aggregationObjectEach['name'] = 'count';
+    }
+    aggregationObjects.push(aggregationObjectEach);
+    requestBody['aggregations'] = aggregationObjects;
+
+
+    // add interval logic here 
+    requestBody['intervals'] = ['2018-10-07T00:00:00.000Z/2020-10-30T00:00:00.000Z'];
+
+    filterObject = {};
+    if (requestParams.length > 1) {
+        filterObject['type'] = 'and';
+        filterObject['fields'] = [];
+        requestParams.forEach((item) => {
+            filterObjectEach = {};
+            if(Array.isArray(reqFilters[item])) {
+                filterObjectEach['type'] = 'or';
+                filterObjectEach['fields'] = [];
+                filterValues = reqFilters[item];
+                filterValues.forEach((filterEach) => {
+                    selectorObject = {};
+                    selectorObject['type'] = 'selector';
+                    selectorObject['dimension'] = item;
+                    selectorObject['value'] = filterEach;
+                    filterObjectEach.fields.push(selectorObject);
+                });
+            } else {
+                filterObjectEach['type'] = 'selector';
+                filterObjectEach['dimension'] = item;
+                filterObjectEach['value'] = reqFilters[item];
+            }
+            filterObject.fields.push(filterObjectEach);
+        });
+    } else {
+        filterObject['type'] = 'selector';
+        filterObject['dimension'] = requestParams[0];
+        filterObject['value'] = reqFilters[requestParams[0]]; 
+    }
+    requestBody['filter'] = filterObject;
+
+    console.log('Request Body :  ');
+    console.log(JSON.stringify(requestBody));
+
+        axios.post(HOST + ":8082/druid/v2", requestBody)
+            .then((response) => {
+                var dataArr = [];
+                response.data.forEach(element => {
+                    element['event']['date'] = element['timestamp']
+                    element['event']['count'] = parseInt(element['event']['count'])
+                    dataArr.push(element['event']);
+                });
+                successResponse = {};
+                successResponse['responseCode'] = 'OK';
+                successResponse['result'] = dataArr;
+                res.send(successResponse);
+                // res.send({ "data": dataArr });
+            }).
+            catch((err) => {
+                failureResponse = {};
+                successResponse['responseCode'] = 'FAIL';
+                successResponse['error'] = err;
+                console.log(err);
+                res.send(failureResponse);
+            });
+})
+
+
+// app.post('/v1/event/count/read', (req, res) => {
+// })
