@@ -27,6 +27,8 @@ app.post('/v1/api/getBarData', (req, res) => {
         request = event_type === undefined ?
             index2.generateReqForRoleBar(program_name, dimension, role, topics)
             : index.generateReqforBar(program_name, dimension, event_type, topics)
+
+            console.log('Barchart Request : ', JSON.stringify(request));
         axios.post(HOST + ":8082/druid/v2", request)
             .then((response) => {
                 var dataArr = []
@@ -60,7 +62,9 @@ app.post('/v1/api/getStackedData', (req, res) => {
         request = event_type === undefined ?
             index2.generateReqforRoleStacked(program_name, dimension, role, topics)
             : index.generateReqforStacked(program_name, dimension, event_type, topics)
-        axios.post(HOST + ":8082/druid/v2", request)
+            console.log('Stacked Chart Request : ', JSON.stringify(request));
+        
+            axios.post(HOST + ":8082/druid/v2", request)
             .then((response) => {
                 var dataArr = []
                 response.data.forEach(element => {
@@ -92,7 +96,9 @@ app.post('/v1/api/getMultiLineData', (req, res) => {
         request = event_type === undefined ?
             index2.generateReqForRoleMultiLine(program_name, dimension, role, topics) :
             index.generateReqForMultiLine(program_name, dimension, event_type, topics)
-        axios.post(HOST + ":8082/druid/v2", request)
+            console.log('Multi line Request : ', JSON.stringify(request));
+
+            axios.post(HOST + ":8082/druid/v2", request)
             .then((response) => {
                 var dataArr = []
                 response.data.forEach(element => {
@@ -366,19 +372,31 @@ app.listen(3000, () => {
 
 app.post('/v1/api/event/count/read', (req, res) => {
 
+    let request = req.body.request;
+    let checkUnique = request.unique;
+    let reqFilters = request.filter;
+    let reqParams = request.params;
+    console.log('12345678 : ', reqParams);
 
-    checkUnique = req.body.unique;
-    reqFilters = req.body.filter;
-    reqFilterKeys = Object.keys(req.body.filter);
-    dataSource = req.body.dataSource ? req.body.dataSource : 'socionDataWithLocation';
+    let reqParamsKeys = Object.keys(reqParams);
+    let requestdataSource = request.dataSource;
+    
+    reqParamsKeys.forEach((paramKey) => {
+        reqFilters[paramKey] = reqParams[paramKey];
+    });
+    let reqFilterKeys = Object.keys(reqFilters);
 
-    requestBody = {};
+    console.log(request);
+
+    let dataSource = requestdataSource ? requestdataSource : 'socionDataWithLocation';
+
+    let requestBody = {};
     requestBody['queryType'] = 'groupBy';
     requestBody['dataSource'] = dataSource;
     requestBody['granularity'] = 'All';
 
-    dimensionObjects = [];
-    reqFilterKeys.forEach((item) => {
+    let dimensionObjects = [];
+    reqParamsKeys.forEach((item) => {
         dimensionObjectEach = {};
         dimensionObjectEach['type'] = 'selector';
         dimensionObjectEach['dimension'] = item;
@@ -388,12 +406,12 @@ app.post('/v1/api/event/count/read', (req, res) => {
 
     requestBody['dimensions'] = dimensionObjects;
 
-    aggregationObjects = [];
-    aggregationObjectEach = {};
+    let aggregationObjects = [];
+    let aggregationObjectEach = {};
     if(checkUnique) {
         aggregationObjectEach['type'] = 'thetaSketch';
         aggregationObjectEach['name'] = 'count';
-        aggregationObjectEach['fieldName'] = req.body.unique_param;
+        aggregationObjectEach['fieldName'] = request.unique_param;
     } else {
         aggregationObjectEach['type'] = 'count';
         aggregationObjectEach['name'] = 'count';
@@ -403,10 +421,10 @@ app.post('/v1/api/event/count/read', (req, res) => {
 
 
     // add interval logic here 
-    if(req.body.startTime && req.body.endTime) {
-        timeInterval = req.body.startTime + '/' + req.body.endTime;
-    } else if (req.body.startTime) {
-        timeInterval = 'req.body.startTime';
+    if(request.startTime && request.endTime) {
+        timeInterval = request.startTime + '/' + request.endTime;
+    } else if (request.startTime) {
+        timeInterval = request.startTime;
         timeInterval += '/';
         timeInterval += new Date().toISOString();
     } else {
@@ -415,7 +433,7 @@ app.post('/v1/api/event/count/read', (req, res) => {
     }
     requestBody['intervals'] = [timeInterval];
 
-    filterObject = {};
+    let filterObject = {};
     if (reqFilterKeys.length > 1) {
         filterObject['type'] = 'and';
         filterObject['fields'] = [];
@@ -452,21 +470,66 @@ app.post('/v1/api/event/count/read', (req, res) => {
         axios.post(HOST + ":8082/druid/v2", requestBody)
             .then((response) => {
                 var dataArr = [];
+                // console.log(response.data);
                 response.data.forEach(element => {
                     element['event']['date'] = element['timestamp'];
                     element['event']['count'] = parseInt(element['event']['count']);
                     dataArr.push(element['event']);
                 });
-                successResponse = {};
+
+                reqParamsKeys.forEach((paramKey) => {
+                    console.log('req Params : ', reqParams);
+                    console.log('Key : ', paramKey);
+                    console.log('Param Key : ', reqParams[paramKey]);
+                    console.log(Array.isArray(reqParams.paramKey));
+                    if(Array.isArray(reqParams[paramKey])) {
+                        console.log('1');
+                        reqParams[paramKey].forEach((paramValueEach) => {
+                            let check = false;
+                            // console.log('1234:', dataArr);
+                            dataArr.forEach((dataEach) => {
+                                if (!!dataEach[paramKey] && dataEach[paramKey] === paramValueEach) {
+                                    check = true;
+                                    // console.log('Check : ', check);
+                                }
+                            });
+                            if(!check) {
+                                let newElement = {};
+                                newElement['date'] = new Date().toISOString();
+                                newElement['count'] = 0;
+                                newElement[paramKey] = paramValueEach;
+                                dataArr.push(newElement);
+                            }
+                        });
+                    } else {
+                        console.log('2');
+                        let check = false;
+                        dataArr.forEach((dataEach) => {
+                            if (!!dataEach[paramKey] && dataEach[paramKey] === reqParams.paramKey) {
+                                check = true;
+                            }
+                            if(!check) {
+                                newElement = {};
+                                newElement['date'] = new Date().toISOString();
+                                newElement['count'] = 0;
+                                newElement[paramKey] = reqParams[paramKey];
+                                dataArr.push(newElement);
+                            }
+                        });
+                    }
+                });
+
+                let successResponse = {};
                 successResponse['responseCode'] = 'OK';
                 successResponse['result'] = dataArr;
+                // console.log(successResponse);
                 res.send(successResponse);
                 // res.send({ "data": dataArr });
             }).
             catch((err) => {
-                failureResponse = {};
-                successResponse['responseCode'] = 'FAIL';
-                successResponse['error'] = err;
+                let failureResponse = {};
+                failureResponse['responseCode'] = 'FAIL';
+                failureResponse['error'] = err;
                 console.log(err);
                 res.send(failureResponse);
             });
@@ -476,19 +539,20 @@ app.post('/v1/api/event/count/read', (req, res) => {
 app.post('/v1/api/event/unique/read', (req, res) => {
 
 
-    reqFilters = req.body.filter;
-    reqFilterKeys = Object.keys(req.body.filter);
-    reqParams = req.body.params;
+    let reqFilters = req.body.filter;
+    let reqFilterKeys = Object.keys(req.body.filter);
+    let reqParams = req.body.params;
     // dataSource = req.body.dataSource;
-    dataSource = 'socionDataWithLocation';
+    let dataSource = 'socionDataWithLocation';
 
-    requestBody = {};
+    let requestBody = {};
     requestBody['queryType'] = 'groupBy';
     requestBody['dataSource'] = dataSource;
     requestBody['granularity'] = 'All';
 
 
     // add interval logic here 
+    let timeInterval;
     if(req.body.startTime && req.body.endTime) {
         timeInterval = req.body.startTime + '/' + req.body.endTime;
     } else if (req.body.startTime) {
@@ -501,7 +565,7 @@ app.post('/v1/api/event/unique/read', (req, res) => {
     }
     requestBody['intervals'] = [timeInterval];
  
-    filterObject = {};
+    let filterObject = {};
     if (reqFilterKeys.length > 1) {
         filterObject['type'] = 'and';
         filterObject['fields'] = [];
@@ -512,7 +576,7 @@ app.post('/v1/api/event/unique/read', (req, res) => {
                 filterObjectEach['fields'] = [];
                 filterValues = reqFilters[item];
                 filterValues.forEach((filterEach) => {
-                    selectorObject = {};
+                    let selectorObject = {};
                     selectorObject['type'] = 'selector';
                     selectorObject['dimension'] = item;
                     selectorObject['value'] = filterEach;
@@ -533,11 +597,11 @@ app.post('/v1/api/event/unique/read', (req, res) => {
     requestBody['filter'] = filterObject;
 
 
-    allRequests = [];
+    let allRequests = [];
     reqParams.forEach((item) => {
         requestBodyNew = {...requestBody};
-        dimensionObjects = [];
-        dimensionObjectEach = {};
+        let dimensionObjects = [];
+        let dimensionObjectEach = {};
         dimensionObjectEach['type'] = 'selector';
         dimensionObjectEach['dimension'] = item;
         dimensionObjectEach['outputName'] = item;
@@ -549,31 +613,32 @@ app.post('/v1/api/event/unique/read', (req, res) => {
         allRequests.push(axios.post(HOST + ":8082/druid/v2", requestBodyNew));
     });
 
-    // console.log("AllRequests : ",allRequests);
+    console.log("AllRequests : ",allRequests);
 
     Promise.all(allRequests).then((responses) => {
-        resultArr = [];
+        let resultArr = {};
         // console.log("Responses", responses);
         responses.forEach((response,i) => {
-            dataArr = [];
+            let dataArr = [];
             dataKey = reqParams[i];
             // console.log('Key : ', dataKey);
-            dataArrEach = {};
+            // dataArrEach = {};
             // console.log('Response : ', response.data);
             response.data.forEach((element) => {
                 dataArr.push(element['event'][dataKey]);
             });
-            dataArrEach[dataKey] = dataArr;
-            console.log(JSON.stringify(dataArrEach));
-            resultArr.push(dataArrEach);
+            // dataArrEach[dataKey] = dataArr;
+            // console.log(JSON.stringify(dataArrEach));
+            resultArr[dataKey] = dataArr;
         });
-        successResponse = {};
+        let successResponse = {};
         successResponse['responseCode'] = 'OK';
         successResponse['result'] = resultArr;
+        console.log(successResponse);
         res.send(successResponse);
     }).
     catch((err) => {
-        failureResponse = {};
+        let failureResponse = {};
         successResponse['responseCode'] = 'FAIL';
         successResponse['error'] = err;
         console.log(err);
@@ -581,3 +646,4 @@ app.post('/v1/api/event/unique/read', (req, res) => {
     });
 
 })
+
