@@ -63,7 +63,7 @@ app.post('/v1/api/getStackedData', (req, res) => {
             index2.generateReqforRoleStacked(program_name, dimension, role, topics)
             : index.generateReqforStacked(program_name, dimension, event_type, topics)
             console.log('Stacked Chart Request : ', JSON.stringify(request));
-        
+
             axios.post(HOST + ":8082/druid/v2", request)
             .then((response) => {
                 var dataArr = []
@@ -372,11 +372,11 @@ app.listen(3000, () => {
 
 app.post('/v1/api/event/count/read', (req, res) => {
 
+    try {
     let request = req.body.request;
     let checkUnique = request.unique;
     let reqFilters = request.filter;
     let reqParams = request.params;
-    console.log('12345678 : ', reqParams);
 
     let reqParamsKeys = Object.keys(reqParams);
     let requestdataSource = request.dataSource;
@@ -388,193 +388,261 @@ app.post('/v1/api/event/count/read', (req, res) => {
 
     console.log(request);
 
-    let dataSource = requestdataSource ? requestdataSource : 'socionDataWithLocation';
-
     let requestBody = {};
-    requestBody['queryType'] = 'groupBy';
-    requestBody['dataSource'] = dataSource;
-    requestBody['granularity'] = 'All';
 
-    let dimensionObjects = [];
-    reqParamsKeys.forEach((item) => {
-        dimensionObjectEach = {};
-        dimensionObjectEach['type'] = 'selector';
-        dimensionObjectEach['dimension'] = item;
-        dimensionObjectEach['outputName'] = item;
-        dimensionObjects.push(dimensionObjectEach);
-    });
+    requestBody = addDataSource(requestBody, requestdataSource);
 
-    requestBody['dimensions'] = dimensionObjects;
+    requestBody = addQueryType(requestBody, 'groupBy');
+    
+    requestBody = addGranularity(requestBody, 'All');
 
-    let aggregationObjects = [];
-    let aggregationObjectEach = {};
-    if(checkUnique) {
-        aggregationObjectEach['type'] = 'thetaSketch';
-        aggregationObjectEach['name'] = 'count';
-        aggregationObjectEach['fieldName'] = request.unique_param;
-    } else {
-        aggregationObjectEach['type'] = 'count';
-        aggregationObjectEach['name'] = 'count';
-    }
-    aggregationObjects.push(aggregationObjectEach);
-    requestBody['aggregations'] = aggregationObjects;
+    requestBody = addDimensionObject(requestBody, reqParamsKeys);
 
+    requestBody = addAggregationObject(requestBody, checkUnique, request.unique_param);
 
-    // add interval logic here 
-    if(request.startTime && request.endTime) {
-        timeInterval = request.startTime + '/' + request.endTime;
-    } else if (request.startTime) {
-        timeInterval = request.startTime;
-        timeInterval += '/';
-        timeInterval += new Date().toISOString();
-    } else {
-        timeInterval = '2018-10-07T00:00:00.000Z/';
-        timeInterval += new Date().toISOString();
-    }
-    requestBody['intervals'] = [timeInterval];
+    requestBody = addTimeObject(requestBody, request.startTime, request.endTime);
 
-    let filterObject = {};
-    if (reqFilterKeys.length > 1) {
-        filterObject['type'] = 'and';
-        filterObject['fields'] = [];
-        reqFilterKeys.forEach((item) => {
-            filterObjectEach = {};
-            if(Array.isArray(reqFilters[item])) {
-                filterObjectEach['type'] = 'or';
-                filterObjectEach['fields'] = [];
-                filterValues = reqFilters[item];
-                filterValues.forEach((filterEach) => {
-                    selectorObject = {};
-                    selectorObject['type'] = 'selector';
-                    selectorObject['dimension'] = item;
-                    selectorObject['value'] = filterEach;
-                    filterObjectEach.fields.push(selectorObject);
-                });
-            } else {
-                filterObjectEach['type'] = 'selector';
-                filterObjectEach['dimension'] = item;
-                filterObjectEach['value'] = reqFilters[item];
-            }
-            filterObject.fields.push(filterObjectEach);
-        });
-    } else {
-        filterObject['type'] = 'selector';
-        filterObject['dimension'] = reqFilterKeys[0];
-        filterObject['value'] = reqFilters[reqFilterKeys[0]]; 
-    }
-    requestBody['filter'] = filterObject;
+    requestBody = addFilterObject(requestBody, reqFilterKeys, reqFilters);
 
     console.log('Request Body :  ');
     console.log(JSON.stringify(requestBody));
 
-        axios.post(HOST + ":8082/druid/v2", requestBody)
-            .then((response) => {
-                var dataArr = [];
-                // console.log(response.data);
-                response.data.forEach(element => {
-                    element['event']['date'] = element['timestamp'];
-                    element['event']['count'] = parseInt(element['event']['count']);
-                    dataArr.push(element['event']);
-                });
+    sendRequestToDruid(requestBody)
+    .then((response) => {
+        let dataArr = prepareResponseObject(response);
+        // console.log(response.data);
 
-                reqParamsKeys.forEach((paramKey) => {
-                    console.log('req Params : ', reqParams);
-                    console.log('Key : ', paramKey);
-                    console.log('Param Key : ', reqParams[paramKey]);
-                    console.log(Array.isArray(reqParams.paramKey));
-                    if(Array.isArray(reqParams[paramKey])) {
-                        console.log('1');
-                        reqParams[paramKey].forEach((paramValueEach) => {
-                            let check = false;
-                            // console.log('1234:', dataArr);
-                            dataArr.forEach((dataEach) => {
-                                if (!!dataEach[paramKey] && dataEach[paramKey] === paramValueEach) {
-                                    check = true;
-                                    // console.log('Check : ', check);
-                                }
-                            });
-                            if(!check) {
-                                let newElement = {};
-                                newElement['date'] = new Date().toISOString();
-                                newElement['count'] = 0;
-                                newElement[paramKey] = paramValueEach;
-                                dataArr.push(newElement);
-                            }
-                        });
-                    } else {
-                        console.log('2');
-                        let check = false;
-                        dataArr.forEach((dataEach) => {
-                            if (!!dataEach[paramKey] && dataEach[paramKey] === reqParams.paramKey) {
-                                check = true;
-                            }
-                            if(!check) {
-                                newElement = {};
-                                newElement['date'] = new Date().toISOString();
-                                newElement['count'] = 0;
-                                newElement[paramKey] = reqParams[paramKey];
-                                dataArr.push(newElement);
-                            }
-                        });
-                    }
-                });
+        dataArr = addCountForAllEvents(dataArr, reqParamsKeys, reqParams);
 
-                let successResponse = {};
-                successResponse['responseCode'] = 'OK';
-                successResponse['result'] = dataArr;
-                // console.log(successResponse);
-                res.send(successResponse);
-                // res.send({ "data": dataArr });
-            }).
-            catch((err) => {
-                let failureResponse = {};
-                failureResponse['responseCode'] = 'FAIL';
-                failureResponse['error'] = err;
-                console.log(err);
-                res.send(failureResponse);
-            });
+        let successResponse = prepareSuccessResponse(dataArr);
+        console.log(successResponse);
+        res.send(successResponse);
+    }).
+    catch((err) => {
+        let failureResponse = prepareFailureResponse(err);
+        res.send(failureResponse);
+    });
+} catch(err) {
+    let failureResponse = prepareFailureResponse(err);
+    res.send(failureResponse);
+    }
 })
 
 
 app.post('/v1/api/event/unique/read', (req, res) => {
 
-
-    let reqFilters = req.body.filter;
-    let reqFilterKeys = Object.keys(req.body.filter);
-    let reqParams = req.body.params;
+    try {
+    let request = req.body.request;
+    let reqFilters = request.filter;
+    let reqFilterKeys = Object.keys(reqFilters);
+    let reqParams = request.params;
     // dataSource = req.body.dataSource;
-    let dataSource = 'socionDataWithLocation';
+
+    let requestdataSource = request.dataSource;
 
     let requestBody = {};
-    requestBody['queryType'] = 'groupBy';
-    requestBody['dataSource'] = dataSource;
-    requestBody['granularity'] = 'All';
+
+    requestBody = addDataSource(requestBody, requestdataSource);
+
+    requestBody = addQueryType(requestBody, 'groupBy');
+    
+    requestBody = addGranularity(requestBody, 'All');
+
+    // requestBody = addAggregationObject(requestBody, checkUnique, request.unique_param);
+
+    requestBody = addTimeObject(requestBody, request.startTime, request.endTime);
+
+    requestBody = addFilterObject(requestBody, reqFilterKeys, reqFilters);
 
 
-    // add interval logic here 
-    let timeInterval;
-    if(req.body.startTime && req.body.endTime) {
-        timeInterval = req.body.startTime + '/' + req.body.endTime;
-    } else if (req.body.startTime) {
-        timeInterval = 'req.body.startTime';
-        timeInterval += '/';
-        timeInterval += new Date().toISOString();
-    } else {
-        timeInterval = '2018-10-07T00:00:00.000Z/';
-        timeInterval += new Date().toISOString();
+
+    let allRequests = [];
+    reqParams.forEach((item) => {
+        requestBodyNew = {...requestBody};
+        requestBodyNew = addDimensionObject(requestBodyNew, item);
+
+        console.log('Request Body :  ');
+        console.log(JSON.stringify(requestBodyNew));
+        let sendRequest = sendRequestToDruid(requestBodyNew);
+        allRequests.push(sendRequest);
+    });
+
+    console.log("AllRequests : ",allRequests);
+
+    Promise.all(allRequests).then((responses) => {
+        let resultArr = {};
+        responses.forEach((response,i) => {
+            let dataArr = [];
+            dataKey = reqParams[i];
+            response.data.forEach((element) => {
+                if(!!element['event'][dataKey]) {
+                    dataArr.push(element['event'][dataKey]);
+                } else {
+                    dataArr = null;
+                }
+            });
+            resultArr[dataKey] = dataArr;
+        });
+
+        let successResponse = prepareSuccessResponse(resultArr);
+        console.log(successResponse);
+        res.send(successResponse);
+    }).
+    catch((err) => {
+        let failureResponse = prepareFailureResponse(err);
+        console.log(err);
+        res.send(failureResponse);
+    });
+} catch(err) {
+    let failureResponse = prepareFailureResponse(err);
+    res.send(failureResponse);
     }
-    requestBody['intervals'] = [timeInterval];
- 
+})
+
+app.post('/v1/api/barchart/data/read', (req, res) => {
+
+    try {
+    let request = req.body.request;
+    // let checkUnique = request.unique;
+    let reqFilters = request.filter;
+    let granularity = request.granularity;
+    let dimension = request.dimension;
+    
+    // let reqParams = request.params;
+
+    // let reqParamsKeys = Object.keys(reqParams);
+    let requestdataSource = request.dataSource;
+    
+    // reqParamsKeys.forEach((paramKey) => {
+    //     reqFilters[paramKey] = reqParams[paramKey];
+    // });
+    let reqFilterKeys = Object.keys(reqFilters);
+
+    console.log(request);
+
+    let requestBody = {};
+
+    requestBody = addDataSource(requestBody, requestdataSource);
+
+    requestBody = addQueryType(requestBody, 'groupBy');
+    
+    requestBody = addGranularity(requestBody, granularity);
+
+    requestBody = addDimensionObject(requestBody, dimension);
+
+    requestBody = addAggregationObject(requestBody, false, request.unique_param);
+
+    requestBody = addTimeObject(requestBody, request.startTime, request.endTime);
+
+    requestBody = addFilterObject(requestBody, reqFilterKeys, reqFilters);
+
+    console.log('Request Body :  ');
+    console.log(JSON.stringify(requestBody));
+
+    sendRequestToDruid(requestBody)
+    .then((response) => {
+        let dataArr = prepareResponseObject(response);
+        // console.log(response.data);
+
+        // dataArr = addCountForAllEvents(dataArr, reqParamsKeys, reqParams);
+
+        let successResponse = prepareSuccessResponse(dataArr);
+        console.log(successResponse);
+        res.send(successResponse);
+    }).
+    catch((err) => {
+        let failureResponse = prepareFailureResponse(err);
+        res.send(failureResponse);
+    });
+} catch(err) {
+    let failureResponse = prepareFailureResponse(err);
+    res.send(failureResponse);
+    }
+})
+
+app.post('/v1/api/stackedchart/data/read', (req, res) => {
+
+    try {
+    let request = req.body.request;
+    // let checkUnique = request.unique;
+    let reqFilters = request.filter;
+    let granularity = request.granularity;
+    let dimension = request.dimension;
+    
+    // let reqParams = request.params;
+
+    // let reqParamsKeys = Object.keys(reqParams);
+    let requestdataSource = request.dataSource;
+    
+    // reqParamsKeys.forEach((paramKey) => {
+    //     reqFilters[paramKey] = reqParams[paramKey];
+    // });
+    let reqFilterKeys = Object.keys(reqFilters);
+
+    console.log(request);
+
+    let requestBody = {};
+
+    requestBody = addDataSource(requestBody, requestdataSource);
+
+    requestBody = addQueryType(requestBody, 'groupBy');
+    
+    requestBody = addGranularity(requestBody, granularity);
+
+    requestBody = addDimensionObject(requestBody, dimension);
+
+    requestBody = addAggregationObject(requestBody, false, request.unique_param);
+
+    requestBody = addTimeObject(requestBody, request.startTime, request.endTime);
+
+    requestBody = addFilterObject(requestBody, reqFilterKeys, reqFilters);
+
+    console.log('Request Body :  ');
+    console.log(JSON.stringify(requestBody));
+
+    sendRequestToDruid(requestBody)
+    .then((response) => {
+        let dataArr = prepareResponseObject(response);
+        // console.log(response.data);
+
+        // dataArr = addCountForAllEvents(dataArr, reqParamsKeys, reqParams);
+
+        let successResponse = prepareSuccessResponse(dataArr);
+        console.log(successResponse);
+        res.send(successResponse);
+    }).
+    catch((err) => {
+        let failureResponse = prepareFailureResponse(err);
+        res.send(failureResponse);
+    });
+} catch(err) {
+    let failureResponse = prepareFailureResponse(err);
+    res.send(failureResponse);
+    }
+})
+
+function addDataSource(requestBody, requestdataSource) {
+    let dataSource = requestdataSource ? requestdataSource : 'socionDataWithLocation';
+    requestBody['dataSource'] = dataSource;
+    return requestBody;
+}
+
+function addQueryType(requestBody, queryType) {
+    requestBody['queryType'] = queryType;
+    return requestBody;
+}
+
+function addFilterObject(requestBody, reqFilterKeys, reqFilters) {
     let filterObject = {};
     if (reqFilterKeys.length > 1) {
         filterObject['type'] = 'and';
         filterObject['fields'] = [];
         reqFilterKeys.forEach((item) => {
-            filterObjectEach = {};
+            let filterObjectEach = {};
             if(Array.isArray(reqFilters[item])) {
                 filterObjectEach['type'] = 'or';
                 filterObjectEach['fields'] = [];
-                filterValues = reqFilters[item];
+                let filterValues = reqFilters[item];
                 filterValues.forEach((filterEach) => {
                     let selectorObject = {};
                     selectorObject['type'] = 'selector';
@@ -595,55 +663,145 @@ app.post('/v1/api/event/unique/read', (req, res) => {
         filterObject['value'] = reqFilters[reqFilterKeys[0]]; 
     }
     requestBody['filter'] = filterObject;
+    return requestBody;
+}
 
+function addTimeObject(requestBody, startTime, endTime) {
+    // add interval logic here 
+    if (startTime && endTime) {
+        timeInterval = startTime + '/' + endTime;
+    } else if (startTime) {
+        timeInterval = startTime;
+        timeInterval += '/';
+        timeInterval += new Date().toISOString();
+    } else {
+        timeInterval = '2018-10-07T00:00:00.000Z/';
+        timeInterval += new Date().toISOString();
+    }
+    requestBody['intervals'] = [timeInterval];
+    return requestBody;
+}
 
-    let allRequests = [];
-    reqParams.forEach((item) => {
-        requestBodyNew = {...requestBody};
-        let dimensionObjects = [];
+function addAggregationObject(requestBody, checkUnique, unique_param) {
+
+    let aggregationObjects = [];
+    let aggregationObjectEach = {};
+    if (checkUnique) {
+        aggregationObjectEach['type'] = 'thetaSketch';
+        aggregationObjectEach['name'] = 'count';
+        aggregationObjectEach['fieldName'] = unique_param;
+    } else {
+        aggregationObjectEach['type'] = 'count';
+        aggregationObjectEach['name'] = 'count';
+    }
+    aggregationObjects.push(aggregationObjectEach);
+    requestBody['aggregations'] = aggregationObjects;
+    return requestBody;
+}
+
+function addDimensionObject(requestBody, reqParamsKeys) {
+
+    let dimensionObjects = [];
+    if (Array.isArray(reqParamsKeys)) {
+        reqParamsKeys.forEach((item) => {
+            let dimensionObjectEach = {};
+            dimensionObjectEach['type'] = 'selector';
+            dimensionObjectEach['dimension'] = item;
+            dimensionObjectEach['outputName'] = item;
+            dimensionObjects.push(dimensionObjectEach);
+        });
+    } else {
         let dimensionObjectEach = {};
         dimensionObjectEach['type'] = 'selector';
-        dimensionObjectEach['dimension'] = item;
-        dimensionObjectEach['outputName'] = item;
+        dimensionObjectEach['dimension'] = reqParamsKeys;
+        dimensionObjectEach['outputName'] = reqParamsKeys;
         dimensionObjects.push(dimensionObjectEach);
-        requestBodyNew['dimensions'] = dimensionObjects;
+    }
 
-        console.log('Request Body :  ');
-        console.log(JSON.stringify(requestBodyNew));
-        allRequests.push(axios.post(HOST + ":8082/druid/v2", requestBodyNew));
-    });
+    requestBody['dimensions'] = dimensionObjects;
+    return requestBody;
+}
 
-    console.log("AllRequests : ",allRequests);
+function addGranularity(requestBody, granularity) {
 
-    Promise.all(allRequests).then((responses) => {
-        let resultArr = {};
-        // console.log("Responses", responses);
-        responses.forEach((response,i) => {
-            let dataArr = [];
-            dataKey = reqParams[i];
-            // console.log('Key : ', dataKey);
-            // dataArrEach = {};
-            // console.log('Response : ', response.data);
-            response.data.forEach((element) => {
-                dataArr.push(element['event'][dataKey]);
-            });
-            // dataArrEach[dataKey] = dataArr;
-            // console.log(JSON.stringify(dataArrEach));
-            resultArr[dataKey] = dataArr;
+    requestBody['granularity'] = granularity;
+    return requestBody;
+}
+
+function sendRequestToDruid(requestBody) {
+
+    return new Promise((resolve, reject) => {
+        axios.post(HOST + ":8082/druid/v2", requestBody)
+            .then((response) => {
+                resolve(response);
+            }).
+        catch((err) => {
+            reject(err);
         });
-        let successResponse = {};
-        successResponse['responseCode'] = 'OK';
-        successResponse['result'] = resultArr;
-        console.log(successResponse);
-        res.send(successResponse);
-    }).
-    catch((err) => {
-        let failureResponse = {};
-        successResponse['responseCode'] = 'FAIL';
-        successResponse['error'] = err;
-        console.log(err);
-        res.send(failureResponse);
+    });
+}
+
+
+function prepareResponseObject(response) {
+    let dataArr = [];
+    response.data.forEach(element => {
+        element['event']['date'] = element['timestamp'];
+        element['event']['count'] = parseInt(element['event']['count']);
+        dataArr.push(element['event']);
+    });
+    return dataArr;
+}
+
+function addCountForAllEvents(dataArr, reqParamsKeys, reqParams) {
+
+    reqParamsKeys.forEach((paramKey) => {
+        if(Array.isArray(reqParams[paramKey])) {
+            reqParams[paramKey].forEach((paramValueEach) => {
+                let check = false;
+                dataArr.forEach((dataEach) => {
+                    if (!!dataEach[paramKey] && dataEach[paramKey] === paramValueEach) {
+                        check = true;
+                    }
+                });
+                if(!check) {
+                    let newElement = {};
+                    newElement['date'] = new Date().toISOString();
+                    newElement['count'] = 0;
+                    newElement[paramKey] = paramValueEach;
+                    dataArr.push(newElement);
+                }
+            });
+        } else {
+            let check = false;
+            dataArr.forEach((dataEach) => {
+                if (!!dataEach[paramKey] && dataEach[paramKey] === reqParams.paramKey) {
+                    check = true;
+                }
+                if(!check) {
+                    newElement = {};
+                    newElement['date'] = new Date().toISOString();
+                    newElement['count'] = 0;
+                    newElement[paramKey] = reqParams[paramKey];
+                    dataArr.push(newElement);
+                }
+            });
+        }
     });
 
-})
+    return dataArr;
+}
 
+function prepareSuccessResponse(dataArr) {
+    let successResponse = {};
+    successResponse['responseCode'] = 'OK';
+    successResponse['result'] = dataArr;
+    return successResponse;
+}
+
+function prepareFailureResponse(err) {
+    let failureResponse = {};
+    failureResponse['responseCode'] = 'FAIL';
+    failureResponse['error'] = err;
+    console.log(err);
+    return failureResponse;
+}
