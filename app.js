@@ -366,7 +366,7 @@ app.post('/v1/api/upload', (req, res) => {
 })
 
 app.listen(3000, () => {
-    console.log("Server listening on 3000")
+    console.log("Server listening on 3000");
 })
 
 
@@ -377,6 +377,17 @@ app.post('/v1/api/event/count/read', (req, res) => {
     let checkUnique = request.unique;
     let reqFilters = request.filter;
     let reqParams = request.params;
+    if(!!reqFilters.time) {
+        delete reqFilters.time;
+    }
+    if(!!reqFilters.start_time) {
+        request.startTime = reqFilters.start_time;
+        delete reqFilters.start_time;
+    }
+    if(!!reqFilters.end_time) {
+        request.endTime = reqFilters.end_time;
+        delete reqFilters.end_time;
+    }
 
     let reqParamsKeys = Object.keys(reqParams);
     let requestdataSource = request.dataSource;
@@ -434,6 +445,19 @@ app.post('/v1/api/event/unique/read', (req, res) => {
     try {
     let request = req.body.request;
     let reqFilters = request.filter;
+
+    if(!!reqFilters.time) {
+        delete reqFilters.time;
+    }
+    if(!!reqFilters.start_time) {
+        request.startTime = reqFilters.start_time;
+        delete reqFilters.start_time;
+    }
+    if(!!reqFilters.end_time) {
+        request.endTime = reqFilters.end_time;
+        delete reqFilters.end_time;
+    }
+
     let reqFilterKeys = Object.keys(reqFilters);
     let reqParams = request.params;
     // dataSource = req.body.dataSource;
@@ -516,6 +540,18 @@ app.post('/v1/api/barchart/data/read', (req, res) => {
     // reqParamsKeys.forEach((paramKey) => {
     //     reqFilters[paramKey] = reqParams[paramKey];
     // });
+    if(!!reqFilters.time) {
+        delete reqFilters.time;
+    }
+    if(!!reqFilters.start_time) {
+        request.startTime = reqFilters.start_time;
+        delete reqFilters.start_time;
+    }
+    if(!!reqFilters.end_time) {
+        request.endTime = reqFilters.end_time;
+        delete reqFilters.end_time;
+    }
+
     let reqFilterKeys = Object.keys(reqFilters);
 
     console.log(request);
@@ -528,7 +564,9 @@ app.post('/v1/api/barchart/data/read', (req, res) => {
     
     requestBody = addGranularity(requestBody, granularity);
 
-    requestBody = addDimensionObject(requestBody, dimension);
+    if(dimension) {
+        requestBody = addDimensionObject(requestBody, dimension);
+    }
 
     requestBody = addAggregationObject(requestBody, false, request.unique_param);
 
@@ -560,7 +598,7 @@ app.post('/v1/api/barchart/data/read', (req, res) => {
     }
 })
 
-app.post('/v1/api/stackedchart/data/read', (req, res) => {
+app.post('/v1/api/chart/data/read', (req, res) => {
 
     try {
     let request = req.body.request;
@@ -577,6 +615,18 @@ app.post('/v1/api/stackedchart/data/read', (req, res) => {
     // reqParamsKeys.forEach((paramKey) => {
     //     reqFilters[paramKey] = reqParams[paramKey];
     // });
+    if(!!reqFilters.time) {
+        delete reqFilters.time;
+    }
+    if(!!reqFilters.start_time) {
+        request.startTime = reqFilters.start_time;
+        delete reqFilters.start_time;
+    }
+    if(!!reqFilters.end_time) {
+        request.endTime = reqFilters.end_time;
+        delete reqFilters.end_time;
+    }
+    
     let reqFilterKeys = Object.keys(reqFilters);
 
     console.log(request);
@@ -589,8 +639,9 @@ app.post('/v1/api/stackedchart/data/read', (req, res) => {
     
     requestBody = addGranularity(requestBody, granularity);
 
-    requestBody = addDimensionObject(requestBody, dimension);
-
+    if(dimension) {
+        requestBody = addDimensionObject(requestBody, dimension);
+    }
     requestBody = addAggregationObject(requestBody, false, request.unique_param);
 
     requestBody = addTimeObject(requestBody, request.startTime, request.endTime);
