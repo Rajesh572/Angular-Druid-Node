@@ -5,7 +5,7 @@ const database = require('./../utility/databaseUtility');
 router.use(express.json());
 
 // used to check druid health
-router.get('/v1/health/status', (req,res) => {
+router.get('/v1/health', (req,res) => {
     console.log('Health status api hit');
     database.checkHealth()
             .then(response => {
