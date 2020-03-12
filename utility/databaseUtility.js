@@ -16,6 +16,21 @@ var sendRequestToDruid = (requestBody) => {
     });
 }
 
+var checkHealth = () => {
+
+    return new Promise((resolve, reject) => {
+        axios.get(HOST + ":8082/status/health")
+            .then((response) => {
+                resolve(response);
+            }).
+        catch((err) => {
+            reject(err);
+        });
+    });
+}
+
+
 module.exports = {
-    sendRequestToDruid
+    sendRequestToDruid,
+    checkHealth
 }

@@ -7,9 +7,11 @@ app.use(cors());
 
 const countRoutes = require('./routes/eventCountRoutes');
 const dataRoutes = require('./routes/chartDataRoutes');
+const healthRoute = require('./routes/healthDataRoute');
 
 app.use('/api', countRoutes);
 app.use('/api', dataRoutes);
+app.use('/api', healthRoute);
 
 app.listen(3000, () => {
     console.log("Server listening on 3000");
