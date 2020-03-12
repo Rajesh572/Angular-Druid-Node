@@ -8,10 +8,18 @@ app.use(cors());
 const countRoutes = require('./routes/eventCountRoutes');
 const dataRoutes = require('./routes/chartDataRoutes');
 const healthRoute = require('./routes/healthDataRoute');
+app.use(function(req, res, next){
+    console.log("api calling from frontend");
+    console.log(req.url)
+    next();
+})
+// app.use('/api', countRoutes);
+// app.use('/api', dataRoutes);
+// app.use('/api', healthRoute);
 
-app.use('/api', countRoutes);
-app.use('/api', dataRoutes);
-app.use('/api', healthRoute);
+app.use(countRoutes);
+app.use(dataRoutes);
+app.use(healthRoute);
 
 app.listen(3000, () => {
     console.log("Server listening on 3000");
