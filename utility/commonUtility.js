@@ -1,5 +1,5 @@
 var addDataSource = (requestBody, requestdataSource) => {
-    let dataSource = requestdataSource ? requestdataSource : 'socionDataWithLocation';
+    let dataSource = requestdataSource ? requestdataSource : process.env.dn_datasource;
     requestBody['dataSource'] = dataSource;
     return requestBody;
 }
@@ -52,7 +52,7 @@ var addTimeObject = (requestBody, startTime, endTime) => {
         timeInterval += '/';
         timeInterval += new Date().toISOString();
     } else {
-        timeInterval = '2018-10-07T00:00:00.000Z/';
+        timeInterval = process.env.dn_initial_time_interval;
         timeInterval += new Date().toISOString();
     }
     requestBody['intervals'] = [timeInterval];

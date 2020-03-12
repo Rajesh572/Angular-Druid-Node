@@ -14,27 +14,27 @@ function addLocationData(data) {
         var day;
         var date = JSON.stringify(d)
 
-        if (date == "null") {
-            element['date'] = "18/01/2020"
-            element['timestamp'] = "2019-10-07 12:21:53.229"
-        } else {
+        // if (date == "null") {
+        //     element['date'] = "18/01/2020"
+        //     element['timestamp'] = "2019-10-07 12:21:53.229"
+        // } else {
 
-            if (d.getMonth() + 1 < 10) {
-                month = "0" + (d.getMonth() + 1)
-            }
-            else {
-                month = d.getMonth() + 1
-            }
-            if (d.getDate() < 10) {
-                day = "0" + d.getDate()
-            }
-            else {
-                day = d.getDate()
-            }
-            x = day + "/" + month + "/" + d.getFullYear()
-            element['date'] = x;
-            element['month'] = months[month - 1];
-        }
+        //     if (d.getMonth() + 1 < 10) {
+        //         month = "0" + (d.getMonth() + 1)
+        //     }
+        //     else {
+        //         month = d.getMonth() + 1
+        //     }
+        //     if (d.getDate() < 10) {
+        //         day = "0" + d.getDate()
+        //     }
+        //     else {
+        //         day = d.getDate()
+        //     }
+        //     x = day + "/" + month + "/" + d.getFullYear()
+        //     element['date'] = x;
+        //     element['month'] = months[month - 1];
+        // }
 
 
         //for adding location data

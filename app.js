@@ -348,7 +348,7 @@ app.get('/v1/api/getAlltopics', (req, res) => {
 
 app.post('/v1/api/upload', (req, res) => {
     var form = new IncomingForm();
-    var path = "/home/admin-pc/"
+    // var path = "/home/aditya/Downloads"
     form.on('file', (field, file) => {
         console.log(file.name)
         const fileData = fs.readFileSync(file.path, 'utf-8')
