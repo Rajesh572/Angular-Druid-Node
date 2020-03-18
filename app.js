@@ -357,6 +357,9 @@ app.post('/v1/api/upload', (req, res) => {
             const csvData = jsonCSV.json2csv(data);
             fs.writeFileSync("new" + file.name, csvData);
         })
+        .catch(e => {
+            console.log('Error while adding location Data : ', e);
+        })
     })
     form.on('end', () => {
         res.json("OK")

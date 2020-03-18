@@ -1,3 +1,8 @@
+const fileKeyUtility = require('./fileReadUtility');
+
+const keys = fileKeyUtility.readKeyFromFile();
+fileKeyUtility.updateProcessVars(keys);
+
 var addDataSource = (requestBody, requestdataSource) => {
     let dataSource = requestdataSource ? requestdataSource : process.env.dn_datasource;
     requestBody['dataSource'] = dataSource;
@@ -22,9 +27,15 @@ var addFilterObject = (requestBody, reqFilterKeys, reqFilters) => {
                 let filterValues = reqFilters[item];
                 filterValues.forEach((filterEach) => {
                     let selectorObject = {};
-                    selectorObject['type'] = 'selector';
-                    selectorObject['dimension'] = item;
-                    selectorObject['value'] = filterEach;
+                    if(item === 'program_id' && process.env.program_id) {
+                        selectorObject['type'] = 'selector';
+                        selectorObject['dimension'] = item;
+                        selectorObject['value'] = process.env.program_id;
+                    } else {
+                        selectorObject['type'] = 'selector';
+                        selectorObject['dimension'] = item;
+                        selectorObject['value'] = filterEach;
+                    }
                     filterObjectEach.fields.push(selectorObject);
                 });
             } else {

@@ -32,7 +32,9 @@ function addLocationData(data) {
         //for adding location data
         if (element['session_lat'] && element['session_lon']) {
             url = apiUrl + element['session_lat'] + "," + element['session_lon'];
+            // console.log(url);
             data = await superagent.get(url)
+            console.log(data);
             responseData = JSON.parse(data.text)['Response']['View'][0]['Result'][0]['Location']['Address'];
             var Country = responseData['Country'];
             var State = responseData['State'];
