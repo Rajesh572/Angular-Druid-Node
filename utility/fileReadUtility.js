@@ -11,6 +11,7 @@ var readKeyFromFile = (key) => {
                 return paresedData[key];
             }
             else {
+                console.log('\x1b[33m%s\x1b[0m', JSON.stringify(paresedData));  //yellow
                 return paresedData;
             }
         }

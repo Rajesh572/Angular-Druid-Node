@@ -1,9 +1,9 @@
 const fileKeyUtility = require('./fileReadUtility');
 
-const keys = fileKeyUtility.readKeyFromFile();
-fileKeyUtility.updateProcessVars(keys);
 
 var addDataSource = (requestBody, requestdataSource) => {
+    const keys = fileKeyUtility.readKeyFromFile();
+    fileKeyUtility.updateProcessVars(keys);
     let dataSource = requestdataSource ? requestdataSource : process.env.dn_datasource;
     requestBody['dataSource'] = dataSource;
     return requestBody;
@@ -15,6 +15,8 @@ var addQueryType = (requestBody, queryType) => {
 }
 
 var addFilterObject = (requestBody, reqFilterKeys, reqFilters) => {
+    const keys = fileKeyUtility.readKeyFromFile();
+    fileKeyUtility.updateProcessVars(keys);
     let filterObject = {};
     if (reqFilterKeys.length > 1) {
         filterObject['type'] = 'and';
